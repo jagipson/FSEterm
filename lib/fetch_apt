@@ -1,0 +1,85 @@
+#!/bin/bash
+usage () {
+  echo "usage: fetch_apt (to|from) AIRPORT"
+  echo " AIRPORT must be ICAO code."
+  exit 1
+}
+
+die () {
+  echo "$@"
+  exit 1
+}
+
+if (( $# != 2 )); then
+  echo "Incorrect number of arguments $#"
+  usage
+fi
+
+# Usage, if any options
+while getopts ":h" opt; do
+  case "$opt" in
+    *) 
+	echo "incorrect argument"
+	usage
+	;;
+
+  esac
+done
+
+shift $((OPTIND - 1))
+
+case "${1^^}" in
+  TO) search="jobsto"
+  direction="to"
+  ;;
+  
+  FROM) search="jobsfrom"
+  direction="from"
+  ;;
+ 
+  *) usage ;;
+esac
+shift
+
+icao="${1^^}"
+shift
+
+# Get the API Key
+config=$(readlink -m "${BASH_SOURCE%/*}/../.config")
+if [[ -e "$config" ]]; then
+  source "$config"
+else
+  # Create a config template
+  echo "This is the first time you've run this, and the configuration"
+  echo "is missing. I've created it for you:"
+  echo "  $config"
+  echo ""
+  echo "Please edit the file and set USERKEY"
+  touch "$config"
+  printf '# set USERKEY\nexport USERKEY=""' > "$config"
+  exit 2
+fi
+
+if [[ ! $USERKEY ]]; then
+  echo "You still haven't set USERKEY in $config"
+  exit 2
+fi
+
+url='http://www.fseconomy.net:81/data?userkey='"$USERKEY"'&format=csv&query=icao&search='"$search"'&icaos='"$icao"
+datadir="${BASH_SOURCE%/*}/../cache"
+data="$datadir/seats-$direction-$icao.csv"
+mkdir -p "$datadir" || die "cache error prep"
+if [[ ! -e "$datadir/icaodata.csv" ]]; then
+  wget -q 'http://www.fseconomy.net:81/datafeed_icaodata.zip' || die "cache error fetch"
+  unzip datafeed_icaodata.zip || die "cache error decompress"
+  tail -n +2 icaodata.csv | sort -t, -k1 > "$datadir/icaodata.csv"
+  rm datafeed_icaodata.zip icaodata.csv
+fi
+
+if [[ -e "$data" ]] && (( $(stat --format=%Y "$data") < ( $(date +%s) - 3600 ) )); then
+  echo "refreshing seats cache"
+  rm "$data"
+fi
+if [[ ! -f "$data" ]]; then
+  wget -q "$url" -O "$data" || die "cache error fetch2"
+fi

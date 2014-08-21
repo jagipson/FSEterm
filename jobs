@@ -1,0 +1,40 @@
+#!/bin/bash
+
+usage () {
+  echo "usage: jobs (to|from) AIRPORT"
+  echo " AIRPORT must be ICAO code."
+  exit
+}
+
+if (( $# < 2 )); then
+  usage
+fi
+
+while getopts ":h" opt; do
+  case "$opt" in
+    *) usage ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+case "${1^^}" in
+  TO) direction="to" ;;
+  FROM) direction="from" ;;
+  *) usage ;;
+esac
+shift
+
+icao="${1^^}"
+shift
+
+libdir="${BASH_SOURCE%/*}/lib"
+datadir="${BASH_SOURCE%/*}/cache"
+data="$datadir/seats-$direction-$icao.csv"
+"$libdir"/fetch_apt "$direction" "$icao" || exit
+icaodata="$datadir/icaodata.csv"
+
+export direction minseats icaodata
+
+printf "From %s\n" "$icao"
+awk -f "$libdir/jobs.awk" "$data" | column -t -s'	'
