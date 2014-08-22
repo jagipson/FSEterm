@@ -1,11 +1,14 @@
 #!/bin/bash
 
 usage () {
-  echo "usage: seats OPTIONS (to|from) AIRPORT"
+  echo "usage: seats [OPTIONS] (to|from) AIRPORT"
   echo " OPTIONS"
   echo "  -m MIN   minimum seats"
+  echo "  -f FMT   output format. FMT is either 'CSV', 'COL', or 'TAB'. By default,"
+  echo "           it will output in COL format if printing to a terminal and"
+  echo "           CSV format otherwise."
   echo " AIRPORT must be ICAO code."
-  exit
+  exit 1
 }
 
 if (( $# < 2 )); then
@@ -15,9 +18,16 @@ fi
 # Set defaults
 : ${minseats:=1}
 
-while getopts ":m:" opt; do
+while getopts ":m:f:" opt; do
   case "$opt" in
     m) minseats="$OPTARG" ;;
+    f)
+      case "${OPTARG^^}" in
+        CSV) fmt="csv" ;;
+        COL) fmt="col" ;;
+        TAB) fmt="tab" ;;
+        *) echo "Invalid argument for -f. Must use 'COL' or 'CSV'"; usage ;;
+      esac ;;
   esac
 done
 
@@ -38,8 +48,9 @@ datadir="${BASH_SOURCE%/*}/cache"
 data="$datadir/seats-$direction-$icao.csv"
 "$libdir"/fetch_apt "$direction" "$icao" || exit
 icaodata="$datadir/icaodata.csv"
+source "$libdir/fselib.sh"
 
 export direction minseats icaodata
 
 printf "Seats From %s\n" "$icao"
-awk -f "$libdir/seats.awk" "$data" | column -t -s'	'
+awk -f "$libdir/seats.awk" "$data" | output_formatter
