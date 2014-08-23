@@ -25,7 +25,7 @@ func fwd_azimuth(lat1, lng1, lat2, lng2) {
 BEGIN {
   FS=","
   PROCINFO["sorted_in"] = "@ind_str_asc"
-  OFS="\t"
+  OFS=","
 
   R = 3443.89849 # radius of Sol III in nautical miles
   pi=3.14159265359
@@ -67,14 +67,14 @@ direction=="to" { site=$2; qairport=$3 }
 
 END {
   if (direction=="from")
-    printf ("To\t")
+    printf ("To,")
   else
-    printf ("From\t")
+    printf ("From,")
 
-  printf ("Field Name\tSeats\tNM\tTrue Hdg\n")
-  printf ("----\t----------\t-----\t--\t--------\n")
+  printf ("Field Name,Seats,NM,True Hdg\n")
+  printf ("----,----------,-----,--,--------\n")
 
   for (site in pax)
     if (pax[site] >= minseats)
-      printf ("%s\t%s\t%d\t%.0f\t%.0f\n", site, airport_name[site], pax[site], haversine(ddtorad(airport_lat[qairport]), ddtorad(airport_lng[qairport]), ddtorad(airport_lat[site]), ddtorad(airport_lng[site])), (360 - fwd_azimuth(ddtorad(airport_lat[qairport]), ddtorad(airport_lng[qairport]), ddtorad(airport_lat[site]), ddtorad(airport_lng[site]))) % 360)
+      printf ("%s,%s,%d,%.0f,%.0f\n", site, airport_name[site], pax[site], haversine(ddtorad(airport_lat[qairport]), ddtorad(airport_lng[qairport]), ddtorad(airport_lat[site]), ddtorad(airport_lng[site])), (360 - fwd_azimuth(ddtorad(airport_lat[qairport]), ddtorad(airport_lng[qairport]), ddtorad(airport_lat[site]), ddtorad(airport_lng[site]))) % 360)
 }

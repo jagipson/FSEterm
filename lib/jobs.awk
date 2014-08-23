@@ -25,7 +25,7 @@ func fwd_azimuth(lat1, lng1, lat2, lng2) {
 BEGIN {
   FS=","
   PROCINFO["sorted_in"] = "@ind_str_asc"
-  OFS="\t"
+  OFS=","
 
   R = 3443.89849 # radius of Sol III in nautical miles
   pi=3.14159265359
@@ -50,8 +50,8 @@ BEGIN {
   }
   close (icaodata)
 
-  printf ("ICAO\tField Name\tSeats\tPay\tProfQ\tNM\tTrue Hdg\n")
-  printf ("----\t----------\t-----\t---\t-----\t--\t--------\n")
+  printf ("ICAO,Field Name,Seats,Pay,ProfQ,NM,True Hdg\n")
+  printf ("----,----------,-----,---,-----,--,--------\n")
 }
 # Skip the first line (contains header)
 NR==1 { next; }
@@ -68,5 +68,5 @@ direction=="to" { site=$2; qairport=$3 }
 {
   dist=haversine(ddtorad(airport_lat[qairport]), ddtorad(airport_lng[qairport]), ddtorad(airport_lat[site]), ddtorad(airport_lng[site]))
   head=(360 - fwd_azimuth(ddtorad(airport_lat[qairport]), ddtorad(airport_lng[qairport]), ddtorad(airport_lat[site]), ddtorad(airport_lng[site]))) % 360
-  printf ("%s\t%s\t%d\t%.2f\t%.3f\t%.0f\t%.0f\n", site, airport_name[site], $5, $8, $8 / ($5 * 70 * dist), dist, head)
+  printf ("%s,%s,%d,%.2f,%.3f,%.0f,%.0f\n", site, airport_name[site], $5, $8, $8 / ($5 * 70 * dist), dist, head)
 }

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+usage () {
+  echo "round_trips AIRPORT SEATS"
+  echo "  List round trips from AIRPORT to other airports with at least SEATS"
+  echo "  passengers each way."
+  echo "   e.x."
+  echo "    round_trips KSAN 12"
+  echo "    # This lists all airports that have at least 12 passengers both"
+  echo "      coming from and going to KSAN"
+
+  exit 1
+}
+
+if getopts ":h" opt; then
+  usage
+fi
+
+if (( $# != 2 )); then
+  usage
+fi
+
+icao="$1"
+seats="$2"
+
+libdir="${BASH_SOURCE%/*}/lib"
+source "$libdir/fselib.sh"
+
+(
+  echo "ICAO,Airport,To,From,Dist,Hdg"
+  join -t, -j 1 -o 1.1,1.2,1.3,2.3,1.4,1.5  <(./seats -m "$seats" from "$icao" | tail -n +4 | sort) <(./seats -m "$seats" to "$icao" | tail -n +4 | sort)
+) | output_formatter
